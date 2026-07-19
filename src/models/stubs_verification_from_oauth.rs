@@ -79,6 +79,8 @@ pub enum Strategy {
     FromOauthApple,
     #[serde(rename = "from_oauth_google")]
     FromOauthGoogle,
+    #[serde(rename = "from_oauth_facebook")]
+    FromOauthFacebook,
     #[serde(rename = "from_oauth_mock")]
     FromOauthMock,
     #[serde(rename = "from_oauth_custom_mock")]

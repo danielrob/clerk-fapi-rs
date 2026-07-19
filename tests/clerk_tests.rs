@@ -971,3 +971,34 @@ async fn test_parse_client() {
     // this is just smoke test to be able to parse real client data
     let _client: clerk_fapi_rs::models::ClientClient = serde_json::from_value(value1).unwrap();
 }
+
+/// Protects Facebook-linked users from losing the live Clerk client when its OAuth relationship is
+/// deserialized during native startup.
+#[test]
+fn test_parse_facebook_linked_client() {
+    let mut value = logged_in_client();
+    let verification_value = {
+        let email = &mut value["sessions"][0]["user"]["email_addresses"][0];
+        email["verification"]["strategy"] = serde_json::json!("from_oauth_facebook");
+        email["linked_to"][0]["type"] = serde_json::json!("oauth_facebook");
+        email["verification"].clone()
+    };
+    let external_account = &mut value["sessions"][0]["user"]["external_accounts"][0];
+    external_account["object"] = serde_json::json!("facebook_account");
+    external_account["provider"] = serde_json::json!("facebook");
+    external_account["verification"]["strategy"] = serde_json::json!("from_oauth_facebook");
+
+    let verification: clerk_fapi_rs::models::StubsVerificationFromOauth =
+        serde_json::from_value(verification_value).unwrap();
+    assert_eq!(
+        verification.strategy,
+        clerk_fapi_rs::models::stubs_verification_from_oauth::Strategy::FromOauthFacebook
+    );
+
+    let client: clerk_fapi_rs::models::ClientClient = serde_json::from_value(value).unwrap();
+    let user = client.sessions[0].user.as_ref().unwrap();
+    assert_eq!(
+        user.email_addresses[0].linked_to[0].r#type,
+        clerk_fapi_rs::models::stubs_identification_link::Type::OauthFacebook
+    );
+}
